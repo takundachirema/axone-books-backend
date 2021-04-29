@@ -1,0 +1,28 @@
+{
+  "name": "dev-server",
+  "version": "1.0.0",
+  "description": "server",
+  "main": "index.js",
+  "scripts": {
+    "build": "babel routes.js index.js -d dist && babel api -d dist/api && babel model -d dist/model && babel repository -d dist/repository",
+    "start": "npm run build && node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.11.5",
+    "@babel/core": "^7.11.5",
+    "@babel/preset-env": "^7.11.5"
+  },
+  "author": "Takunda",
+  "license": "ISC",
+  "dependencies": {
+    "bigchaindb-driver": "^4.2.2",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "moment": "^2.29.0",
+    "morgan": "^1.10.0",
+    "mssql": "^6.2.1",
+    "sequelize": "^6.3.5",
+    "tedious": "^9.2.1"
+  }
+}
