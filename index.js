@@ -9,7 +9,7 @@ const app = express() // instantiate a new express app
 const port = 3000
 
 setEnvironment(app);
-connectToDB();
+//connectToDB();
 registerRoutes(app);
 
 app.use(bodyParser.json());

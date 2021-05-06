@@ -2,22 +2,32 @@ import { DateTime } from 'mssql';
 import {sequelize} from '../config/db';
 const driver = require('bigchaindb-driver');
 const { Op } = require("sequelize");
+const MongoClient = require('mongodb').MongoClient;
 
-var FullBetaModel = require('../../model/full-beta-model').default;
-var PortfolioMetrics = require('../../model/portfolio-metrics-model').default;
-var IndustryPortfolioMetrics = require('../../model/industry-portf-model').default;
-var SharesMetrics = require('../../model/shares-metrics-model').default;
-const allIndexNames = require('../utilities/index-names');
+/**
+ * Only returns the metadata of the latest books to be added
+ * @param {*} req 
+ * @param {*} res 
+ */
+export function getLatest(req, res) {
+    var mongodb_url= req.body["mongodb_url"]
 
-export function publish(req, res) {
-    const key_pair = new driver.Ed25519Keypair();
-    const conn = new driver.Connection(process.env.BIGCHAINDB);
+    const client = new MongoClient(mongodb_url);
+    
+    console.log("mongodb_url: "+mongodb_url)
 
-    // const assetdata = {
-    //     'bicycle': {
-    //         'serial_number': 'abcd1234',
-    //         'manufacturer': 'Bicycle Inc.',
-    //     }
-    // }
-    return res.status(200).json({message: JSON.stringify(key_pair)});
+    client.connect(function(err) {
+        console.log("connection err: "+err)
+        if (err) return res.status(400).json({ error: err});
+
+        const db = client.db("bigchain");
+        const metadata_collection = db.collection("metadata")
+
+        metadata_collection.find({}).toArray(function(err, docs) {
+            if (err) return res.status(400).json({ error: err});
+
+            return res.status(200).json({results: docs});
+        });
+    });
+    
 }
