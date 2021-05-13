@@ -16,13 +16,17 @@
   "author": "Takunda",
   "license": "ISC",
   "dependencies": {
+    "base-58": "^0.0.1",
     "bigchaindb-driver": "^4.2.2",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
+    "crypto-js": "^4.0.0",
+    "ed2curve": "^0.3.0",
     "moment": "^2.29.0",
     "morgan": "^1.10.0",
     "mssql": "^6.2.1",
     "sequelize": "^6.3.5",
-    "tedious": "^9.2.1"
+    "tedious": "^9.2.1",
+    "tweetnacl": "^0.14.5"
   }
 }
