@@ -18,21 +18,56 @@ export function getLatest(req, res) {
 
     const client = new MongoClient(mongodb_url);
     
-    console.log("mongodb_url: "+mongodb_url)
-
     client.connect(function(err) {
-        console.log("connection err: "+err)
+
         if (err) return res.status(400).json({ error: err});
 
         const db = client.db("bigchain");
-        const metadata_collection = db.collection("metadata")
+        const transactions_collection = db.collection("transactions");
 
-        metadata_collection.find({}).toArray(function(err, docs) {
+        var query = getMetadata(transactions_collection);
+
+        query.toArray(function(err, docs) {
             if (err) return res.status(400).json({ error: err});
-
             return res.status(200).json({results: docs});
         });
     });
+}
+
+/**
+ * This method gets the metadata of the most recently edited assets.
+ * @param {boolean} latest Retrieve the latest asset metadata
+ * @param {int} max Retrieve certain number of metadata
+ */
+function getMetadata(transactions_collection, latest = true, max = 10, search_text = null){
+
+    return transactions_collection
+    .aggregate([
+        {$match: { operation: { $ne: "CREATE" }  }},
+        {$group: {
+            _id: "$asset.id",
+            asset_id: {"$last":"$asset.id"},
+            transaction_id: {"$last":"$id"},
+        }},
+        {$lookup:{
+            from: 'metadata',
+            localField: 'transaction_id',
+            foreignField: 'id',
+            as: 'metadata'
+        }},
+        {$unwind: "$metadata"},
+        {$project: {
+            "id": "$transaction_id",
+            "asset_id": "$asset_id",
+            "transaction_id": "$transaction_id",
+            "metadata": "$metadata.metadata"
+        }},
+        {$project: {
+            "_id": 0,
+            "metadata.blob": 0,
+            "metadata.properties": 0
+        }}
+    ]);
 }
 
 export function getDocument(req, res) {
@@ -91,4 +126,137 @@ export function getDocument(req, res) {
             return res.status(200).json({results: d_document});
         });
     });
+}
+
+export function getAdjacentDocuments(req, res){
+    var mongodb_url= req.body["mongodb_url"]
+    var asset_id = req.body["asset_id"]
+
+    const client = new MongoClient(mongodb_url);
+    var results = []
+
+    client.connect(function(err) {
+
+        if (err) return res.status(400).json({ error: err});
+
+        const db = client.db("bigchain");
+        const assets_collection = db.collection("assets");
+
+        var query_ref_by = getAdjacentReferencingAsset(assets_collection, asset_id);
+
+        query_ref_by.toArray(function(err, adj_ref_by) {
+            if (err) return res.status(400).json({ error: err});
+            
+            // put in results
+            results = results.concat(adj_ref_by);
+
+            // Then get the adjacent nodes referenced by asset
+            assets_collection
+            .findOne({id: asset_id})
+            .then(asset => {
+                var parents = asset.data.parents;
+                var children =  asset.data.children;
+                
+                if (parents == null) parents = [];
+                if (children == null) children = [];
+
+                var asset_ids = parents.concat(children);
+
+                var query_ref = getAdjacentReferencedByAsset(assets_collection, asset_ids);
+                query_ref.toArray(function(err, adj_ref) {
+                    if (err) return res.status(400).json({ error: err});
+
+                    results = results.concat(adj_ref);
+                    return res.status(200).json({results: results});
+                });
+            })
+            .catch(err => {
+                console.log("errors: "+err.message)
+                return res.status(400).json({ error: err});
+            });
+        });
+    });
+}
+
+/**
+ * Only gets nodes that reference the asset after it was created.
+ * To get the ones the asset itself referenced on creation call the method getAdjacentAssetReferenced()
+ * @param {*} assets_collection 
+ * @param {*} asset_id 
+ */
+function getAdjacentReferencingAsset(assets_collection, asset_id){
+
+    return assets_collection
+    .aggregate([
+        {$match: { $text: { $search: asset_id }} },
+        {$match: { id: { $ne: asset_id }  }},
+        {$lookup:{
+            from: 'transactions',
+            localField: 'id',
+            foreignField: 'asset.id',
+            as: 'transactions'
+        }},
+        {$unwind: "$transactions"},
+        {$group: {
+            _id: "$transactions.id",
+            asset_id: {"$last":"$id"},
+            transaction_id: {"$last":"$transactions.id"},
+        }},
+        {$lookup:{
+            from: 'metadata',
+            localField: 'transaction_id',
+            foreignField: 'id',
+            as: 'metadata'
+        }},
+        {$unwind: "$metadata"},
+        {$project: {
+            "id": "$transaction_id",
+            "asset_id": "$asset_id",
+            "transaction_id": "$transaction_id",
+            "metadata": "$metadata.metadata"
+        }},
+        {$project: {
+            "_id": 0,
+            "metadata.blob": 0,
+            "metadata.properties": 0
+        }}
+    ]);
+}
+
+function getAdjacentReferencedByAsset(assets_collection, asset_ids){
+
+    return assets_collection
+    .aggregate([
+        {$match: { id: { $in: asset_ids } }},
+        {$lookup:{
+            from: 'transactions',
+            localField: 'id',
+            foreignField: 'asset.id',
+            as: 'transactions'
+        }},
+        {$unwind: "$transactions"},
+        {$group: {
+            _id: "$transactions.id",
+            asset_id: {"$last":"$id"},
+            transaction_id: {"$last":"$transactions.id"},
+        }},
+        {$lookup:{
+            from: 'metadata',
+            localField: 'transaction_id',
+            foreignField: 'id',
+            as: 'metadata'
+        }},
+        {$unwind: "$metadata"},
+        {$project: {
+            "id": "$transaction_id",
+            "asset_id": "$asset_id",
+            "transaction_id": "$transaction_id",
+            "metadata": "$metadata.metadata"
+        }},
+        {$project: {
+            "_id": 0,
+            "metadata.blob": 0,
+            "metadata.properties": 0
+        }}
+    ]);
 }
