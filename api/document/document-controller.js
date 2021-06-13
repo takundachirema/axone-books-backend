@@ -145,8 +145,10 @@ export function getAdjacentDocuments(req, res){
         var query_ref_by = getAdjacentReferencingAsset(assets_collection, asset_id);
 
         query_ref_by.toArray(function(err, adj_ref_by) {
-            if (err) return res.status(400).json({ error: err});
-            
+            if (err){ 
+                console.log(err)
+                return res.status(400).json({ error: err});
+            }
             // put in results
             results = results.concat(adj_ref_by);
 
@@ -201,6 +203,8 @@ function getAdjacentReferencingAsset(assets_collection, asset_id){
             _id: "$transactions.id",
             asset_id: {"$last":"$id"},
             transaction_id: {"$last":"$transactions.id"},
+            children: {"$last":"$data.children"},
+            parents: {"$last":"$data.parents"}
         }},
         {$lookup:{
             from: 'metadata',
@@ -213,6 +217,8 @@ function getAdjacentReferencingAsset(assets_collection, asset_id){
             "id": "$transaction_id",
             "asset_id": "$asset_id",
             "transaction_id": "$transaction_id",
+            // If asset_id is one of its children, then it's a parent
+            "is_parent" : {$in: [ asset_id, "$children" ]},
             "metadata": "$metadata.metadata"
         }},
         {$project: {
@@ -223,7 +229,8 @@ function getAdjacentReferencingAsset(assets_collection, asset_id){
     ]);
 }
 
-function getAdjacentReferencedByAsset(assets_collection, asset_ids){
+function getAdjacentReferencedByAsset(assets_collection, parents_ids, children_ids){
+    var asset_ids = parents_ids.concat(children_ids);
 
     return assets_collection
     .aggregate([
@@ -251,6 +258,7 @@ function getAdjacentReferencedByAsset(assets_collection, asset_ids){
             "id": "$transaction_id",
             "asset_id": "$asset_id",
             "transaction_id": "$transaction_id",
+            "is_parent" : {$in: [ "$asset_id", parents_ids ]},
             "metadata": "$metadata.metadata"
         }},
         {$project: {
