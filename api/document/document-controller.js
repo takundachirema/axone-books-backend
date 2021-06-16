@@ -56,9 +56,18 @@ function getMetadata(transactions_collection, latest = true, max = 10, search_te
             as: 'metadata'
         }},
         {$unwind: "$metadata"},
+        {$lookup:{
+            from: 'assets',
+            localField: 'asset_id',
+            foreignField: 'id',
+            as: 'asset'
+        }},
+        {$unwind: "$asset"},
         {$project: {
             "id": "$transaction_id",
             "asset_id": "$asset_id",
+            //"version": "$asset.version",
+            "version": "2.0", // ** testing
             "transaction_id": "$transaction_id",
             "metadata": "$metadata.metadata"
         }},
@@ -181,8 +190,8 @@ export function getAdjacentDocuments(req, res){
 }
 
 /**
- * Only gets nodes that reference the asset after it was created.
- * To get the ones the asset itself referenced on creation call the method getAdjacentAssetReferenced()
+ * Only gets nodes that referenced the asset_id
+ * getAdjacentAssetReferenced() gets nodes the asset referenced
  * @param {*} assets_collection 
  * @param {*} asset_id 
  */
@@ -217,7 +226,9 @@ function getAdjacentReferencingAsset(assets_collection, asset_id){
             "id": "$transaction_id",
             "asset_id": "$asset_id",
             "transaction_id": "$transaction_id",
-            // If asset_id is one of its children, then it's a parent
+            //"version": "$data.version",
+            "version": "3.0", // ** testing
+            // If asset_id is a child, then THIS asset is a parent.
             "is_parent" : {$in: [ asset_id, "$children" ]},
             "metadata": "$metadata.metadata"
         }},
@@ -258,6 +269,8 @@ function getAdjacentReferencedByAsset(assets_collection, parents_ids, children_i
             "id": "$transaction_id",
             "asset_id": "$asset_id",
             "transaction_id": "$transaction_id",
+            //"version": "$data.version",
+            "version": "1.0", // ** testing
             "is_parent" : {$in: [ "$asset_id", parents_ids ]},
             "metadata": "$metadata.metadata"
         }},
