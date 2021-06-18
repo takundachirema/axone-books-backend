@@ -9,5 +9,6 @@ router.post('/documents', controller.getDocument);
 
 router.post('/documents/adjacent', controller.getAdjacentDocuments);
 
+router.post('/documents/public_key', controller.getPublicKeyDocuments);
 
 export default router;

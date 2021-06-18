@@ -35,50 +35,10 @@ export function getLatest(req, res) {
 }
 
 /**
- * This method gets the metadata of the most recently edited assets.
- * @param {boolean} latest Retrieve the latest asset metadata
- * @param {int} max Retrieve certain number of metadata
+ * This method decrypts the document using the secret key of Axone the custodian.
+ * @param {*} req 
+ * @param {*} res 
  */
-function getMetadata(transactions_collection, latest = true, max = 10, search_text = null){
-
-    return transactions_collection
-    .aggregate([
-        {$match: { operation: { $ne: "CREATE" }  }},
-        {$group: {
-            _id: "$asset.id",
-            asset_id: {"$last":"$asset.id"},
-            transaction_id: {"$last":"$id"},
-        }},
-        {$lookup:{
-            from: 'metadata',
-            localField: 'transaction_id',
-            foreignField: 'id',
-            as: 'metadata'
-        }},
-        {$unwind: "$metadata"},
-        {$lookup:{
-            from: 'assets',
-            localField: 'asset_id',
-            foreignField: 'id',
-            as: 'asset'
-        }},
-        {$unwind: "$asset"},
-        {$project: {
-            "id": "$transaction_id",
-            "asset_id": "$asset_id",
-            //"version": "$asset.version",
-            "version": "2.0", // ** testing
-            "transaction_id": "$transaction_id",
-            "metadata": "$metadata.metadata"
-        }},
-        {$project: {
-            "_id": 0,
-            "metadata.blob": 0,
-            "metadata.properties": 0
-        }}
-    ]);
-}
-
 export function getDocument(req, res) {
     var mongodb_url= req.body["mongodb_url"]
     var id = req.body["id"]
@@ -92,13 +52,15 @@ export function getDocument(req, res) {
         if (err) return res.status(400).json({ error: err});
 
         const db = client.db("bigchain");
-        const assets_collection = db.collection("assets")
+        const transactions_collection = db.collection("transactions")
 
-        assets_collection.find({"id":id}).toArray(function(err, docs) {
+        var query = getMetadata(transactions_collection, id);
+
+        query.toArray(function(err, docs) {
             if (err) return res.status(400).json({ error: err});
-            var data = docs[0].data
+            var data = docs[0].metadata;
 
-            //console.log(data)
+            // console.log(data)
             // get the secret and nonce as base58
             var secret_b58 = data.axone_secret;
             var nonce_b58 = data.axone_nonce;
@@ -154,10 +116,8 @@ export function getAdjacentDocuments(req, res){
         var query_ref_by = getAdjacentReferencingAsset(assets_collection, asset_id);
 
         query_ref_by.toArray(function(err, adj_ref_by) {
-            if (err){ 
-                console.log(err)
-                return res.status(400).json({ error: err});
-            }
+            if (err) return res.status(400).json({ error: err});
+
             // put in results
             results = results.concat(adj_ref_by);
 
@@ -187,6 +147,90 @@ export function getAdjacentDocuments(req, res){
             });
         });
     });
+}
+
+export function getPublicKeyDocuments(req, res){
+    var mongodb_url= req.body["mongodb_url"]
+    var public_key = req.body["public_key"]
+    
+    const client = new MongoClient(mongodb_url);
+
+    client.connect(function(err) {
+
+        if (err) return res.status(400).json({ error: err});
+
+        const db = client.db("bigchain");
+        const assets_collection = db.collection("assets");
+
+        var query = getAssets(assets_collection, [public_key]);
+
+        query.toArray(function(err, docs) {
+            if (err){ 
+                console.log(err)
+                return res.status(400).json({ error: err});
+            }
+            console.log(docs)
+            return res.status(200).json({results: docs});
+        });
+    });
+
+}
+
+/**
+ * This method gets the metadata of the most recently edited assets.
+ * @param {boolean} latest Retrieve the latest asset metadata
+ * @param {int} max Retrieve certain number of metadata
+ */
+function getMetadata(transactions_collection, asset_id = 0, latest = true, max = 10, search_text = null){
+
+    var query_array = 
+    [
+        {$match: { operation: { $ne: "CREATE" }  }},
+        {$group: {
+            _id: "$asset.id",
+            asset_id: {"$last":"$asset.id"},
+            transaction_id: {"$last":"$id"},
+        }},
+        {$lookup:{
+            from: 'metadata',
+            localField: 'transaction_id',
+            foreignField: 'id',
+            as: 'metadata'
+        }},
+        {$unwind: "$metadata"},
+        {$lookup:{
+            from: 'assets',
+            localField: 'asset_id',
+            foreignField: 'id',
+            as: 'asset'
+        }},
+        {$unwind: "$asset"},
+        {$project: {
+            "id": "$transaction_id",
+            "asset_id": "$asset_id",
+            "version": "$asset.version",
+            //"version": "2.0", // ** testing
+            "transaction_id": "$transaction_id",
+            "metadata": "$metadata.metadata"
+        }}
+    ];
+
+    // If asset_id is not null get only that.
+    // Otherwise get other assets and remove excess data.
+    if (asset_id !== 0) {
+        query_array.splice(1, 0,  {$match: { id: { $eq: asset_id }  }});
+    }
+    else {
+        query_array.push(
+            {$project: {
+                "_id": 0,
+                "metadata.blob": 0,
+                "metadata.properties": 0
+            }}
+        )
+    }
+
+    return transactions_collection.aggregate(query_array);
 }
 
 /**
@@ -226,8 +270,8 @@ function getAdjacentReferencingAsset(assets_collection, asset_id){
             "id": "$transaction_id",
             "asset_id": "$asset_id",
             "transaction_id": "$transaction_id",
-            //"version": "$data.version",
-            "version": "3.0", // ** testing
+            "version": "$data.version",
+            //"version": "3.0", // ** testing
             // If asset_id is a child, then THIS asset is a parent.
             "is_parent" : {$in: [ asset_id, "$children" ]},
             "metadata": "$metadata.metadata"
@@ -269,9 +313,56 @@ function getAdjacentReferencedByAsset(assets_collection, parents_ids, children_i
             "id": "$transaction_id",
             "asset_id": "$asset_id",
             "transaction_id": "$transaction_id",
-            //"version": "$data.version",
-            "version": "1.0", // ** testing
+            "version": "$data.version",
+            //"version": "1.0", // ** testing
             "is_parent" : {$in: [ "$asset_id", parents_ids ]},
+            "metadata": "$metadata.metadata"
+        }},
+        {$project: {
+            "_id": 0,
+            "metadata.blob": 0,
+            "metadata.properties": 0
+        }}
+    ]);
+}
+
+function getAssets(assets_collection, public_keys){
+
+    return assets_collection
+    .aggregate([
+        {$match: { "data.public_key": { $in: public_keys } }},
+        {$lookup:{
+            from: 'transactions',
+            let: { asset_id: "$id"},
+            pipeline: [{
+                $match: {
+                    $or: [
+                        {$expr: { $eq: ["$$asset_id", "$asset.id"] }},
+                        {$expr: { $eq: ["$$asset_id", "$id"] }}
+                    ]
+                }
+            }],
+            as: 'transactions'
+        }},
+        {$unwind: "$transactions"},
+        {$group: {
+            _id: "$transactions.id",
+            asset_id: {"$last":"$id"},
+            transaction_id: {"$last":"$transactions.id"},
+        }},
+        {$lookup:{
+            from: 'metadata',
+            localField: 'transaction_id',
+            foreignField: 'id',
+            as: 'metadata'
+        }},
+        {$unwind: "$metadata"},
+        {$project: {
+            "id": "$transaction_id",
+            "asset_id": "$asset_id",
+            "transaction_id": "$transaction_id",
+            "version": "$data.version",
+            //"version": "1.0", // ** testing
             "metadata": "$metadata.metadata"
         }},
         {$project: {
