@@ -59,6 +59,7 @@ export function getDocument(req, res) {
         query.toArray(function(err, docs) {
             if (err) return res.status(400).json({ error: err});
             var data = docs[0].metadata;
+            var pages = docs[0].pages;
 
             // console.log(data)
             // get the secret and nonce as base58
@@ -94,7 +95,7 @@ export function getDocument(req, res) {
             var d_document = CryptoJS.AES.decrypt(data.blob, d_secret_b58).toString(CryptoJS.enc.Utf8);
 
             //console.log(d_document);
-            return res.status(200).json({results: d_document});
+            return res.status(200).json({document: d_document, pages: pages});
         });
     });
 }
@@ -190,6 +191,7 @@ function getMetadata(transactions_collection, asset_id = 0, latest = true, max =
             _id: "$asset.id",
             asset_id: {"$last":"$asset.id"},
             transaction_id: {"$last":"$id"},
+            transaction_type: {"$last":"$operation"}
         }},
         {$lookup:{
             from: 'metadata',
@@ -209,8 +211,8 @@ function getMetadata(transactions_collection, asset_id = 0, latest = true, max =
             "id": "$transaction_id",
             "asset_id": "$asset_id",
             "version": "$asset.version",
-            //"version": "2.0", // ** testing
             "transaction_id": "$transaction_id",
+            "transaction_type": "$transaction_type",
             "metadata": "$metadata.metadata"
         }}
     ];
@@ -256,8 +258,7 @@ function getAdjacentReferencingAsset(assets_collection, asset_id){
             _id: "$transactions.id",
             asset_id: {"$last":"$id"},
             transaction_id: {"$last":"$transactions.id"},
-            children: {"$last":"$data.children"},
-            parents: {"$last":"$data.parents"}
+            transaction_type: {"$last":"$transactions.operation"},
         }},
         {$lookup:{
             from: 'metadata',
@@ -270,10 +271,11 @@ function getAdjacentReferencingAsset(assets_collection, asset_id){
             "id": "$transaction_id",
             "asset_id": "$asset_id",
             "transaction_id": "$transaction_id",
+            "transaction_type": "$transaction_type",
             "version": "$data.version",
             //"version": "3.0", // ** testing
             // If asset_id is a child, then THIS asset is a parent.
-            "is_parent" : {$in: [ asset_id, "$children" ]},
+            "is_parent" : {$in: [ asset_id, "$data.children" ]},
             "metadata": "$metadata.metadata"
         }},
         {$project: {
@@ -301,6 +303,7 @@ function getAdjacentReferencedByAsset(assets_collection, parents_ids, children_i
             _id: "$transactions.id",
             asset_id: {"$last":"$id"},
             transaction_id: {"$last":"$transactions.id"},
+            transaction_type: {"$last":"$transactions.operation"}
         }},
         {$lookup:{
             from: 'metadata',
@@ -313,6 +316,7 @@ function getAdjacentReferencedByAsset(assets_collection, parents_ids, children_i
             "id": "$transaction_id",
             "asset_id": "$asset_id",
             "transaction_id": "$transaction_id",
+            "transaction_type":"$transaction_type",
             "version": "$data.version",
             //"version": "1.0", // ** testing
             "is_parent" : {$in: [ "$asset_id", parents_ids ]},
@@ -346,9 +350,10 @@ function getAssets(assets_collection, public_keys){
         }},
         {$unwind: "$transactions"},
         {$group: {
-            _id: "$transactions.id",
+            _id: "$id",
             asset_id: {"$last":"$id"},
             transaction_id: {"$last":"$transactions.id"},
+            transaction_type: {"$last":"$transactions.operation"}
         }},
         {$lookup:{
             from: 'metadata',
@@ -361,6 +366,7 @@ function getAssets(assets_collection, public_keys){
             "id": "$transaction_id",
             "asset_id": "$asset_id",
             "transaction_id": "$transaction_id",
+            "transaction_type": "$transaction_type",
             "version": "$data.version",
             //"version": "1.0", // ** testing
             "metadata": "$metadata.metadata"
