@@ -210,7 +210,7 @@ function getMetadata(transactions_collection, asset_id = 0, latest = true, max =
         {$project: {
             "id": "$transaction_id",
             "asset_id": "$asset_id",
-            "version": "$asset.version",
+            "version": "$asset.data.version",
             "transaction_id": "$transaction_id",
             "transaction_type": "$transaction_type",
             "metadata": "$metadata.metadata"
