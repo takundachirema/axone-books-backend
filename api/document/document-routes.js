@@ -11,4 +11,6 @@ router.post('/documents/adjacent', controller.getAdjacentDocuments);
 
 router.post('/documents/public_key', controller.getPublicKeyDocuments);
 
+router.post('/documents/payments', controller.getPaymentPointers);
+
 export default router;
