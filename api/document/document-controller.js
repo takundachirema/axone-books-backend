@@ -169,9 +169,12 @@ export function getPublicKeyDocuments(req, res){
         if (err) return res.status(400).json({ error: err});
 
         const db = client.db("bigchain");
-        const assets_collection = db.collection("assets");
+        
+        //const assets_collection = db.collection("assets");
+        //var query = getAssets(assets_collection, [public_key]);
 
-        var query = getAssets(assets_collection, [public_key]);
+        const transactions_collection = db.collection("transactions");
+        var query = getMetadata(transactions_collection, 0, [], [public_key]);    
 
         query.toArray(function(err, docs) {
             if (err){ 
@@ -236,7 +239,7 @@ function decryptDocument(docs){
  * @param {boolean} latest Retrieve the latest asset metadata
  * @param {int} max Retrieve certain number of metadata
  */
-function getMetadata(transactions_collection, asset_id = 0, transaction_ids = [], latest = true, max = 10, search_text = null){
+function getMetadata(transactions_collection, asset_id = 0, transaction_ids = [], search_public_keys = [], latest = true, max = 10, search_text = null){
 
     var query_array = 
     [
@@ -245,7 +248,8 @@ function getMetadata(transactions_collection, asset_id = 0, transaction_ids = []
             _id: "$asset.id",
             asset_id: {"$last":"$asset.id"},
             transaction_id: {"$last":"$id"},
-            transaction_type: {"$last":"$operation"}
+            transaction_type: {"$last":"$operation"},
+            outputs: {"$last":"$outputs"}
         }},
         {$lookup:{
             from: 'metadata',
@@ -280,6 +284,8 @@ function getMetadata(transactions_collection, asset_id = 0, transaction_ids = []
 
         if (transaction_ids.length > 0){
             query_array.splice(1, 0,  {$match: { id: { $in: transaction_ids } }});
+        }else if (search_public_keys.length > 0){
+            query_array.splice(2, 0,  {$match: { outputs: {$elemMatch : {public_keys : { $in: search_public_keys }}}}});
         }
 
         query_array.push(
@@ -391,22 +397,14 @@ function getAdjacentReferencedByAsset(assets_collection, parents_ids, children_i
     ]);
 }
 
-function getAssets(assets_collection, public_keys){
+function getAssets(metadata_collection, public_keys){
 
-    return assets_collection
+    return metadata_collection
     .aggregate([
-        {$match: { "data.public_key": { $in: public_keys } }},
+        {$match: { "metadata.document_pk": { $in: public_keys } }},
         {$lookup:{
-            from: 'transactions',
-            let: { asset_id: "$id"},
-            pipeline: [{
-                $match: {
-                    $or: [
-                        {$expr: { $eq: ["$$asset_id", "$asset.id"] }},
-                        {$expr: { $eq: ["$$asset_id", "$id"] }}
-                    ]
-                }
-            }],
+            localField: 'id',
+            foreignField: 'asset.id',
             as: 'transactions'
         }},
         {$unwind: "$transactions"},
@@ -417,13 +415,6 @@ function getAssets(assets_collection, public_keys){
             transaction_id: {"$last":"$transactions.id"},
             transaction_type: {"$last":"$transactions.operation"}
         }},
-        {$lookup:{
-            from: 'metadata',
-            localField: 'transaction_id',
-            foreignField: 'id',
-            as: 'metadata'
-        }},
-        {$unwind: "$metadata"},
         {$project: {
             "id": "$transaction_id",
             "asset_id": "$asset_id",
@@ -431,7 +422,7 @@ function getAssets(assets_collection, public_keys){
             "transaction_type": "$transaction_type",
             "version": "$data.version",
             //"version": "1.0", // ** testing
-            "metadata": "$metadata.metadata"
+            "metadata": "$metadata"
         }},
         {$project: {
             "_id": 0,
