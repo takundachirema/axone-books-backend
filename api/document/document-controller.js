@@ -245,8 +245,8 @@ function getMetadata(transactions_collection, asset_id = 0, transaction_ids = []
     [
         {$match: { operation: { $ne: "CREATE" }  }},
         {$group: {
-            _id: "$asset.id",
-            asset_id: {"$last":"$asset.id"},
+            _id: { $ifNull: [ "$asset.id", "$id" ] },
+            asset_id: {"$last":{ $ifNull: [ "$asset.id", "$id" ] }},
             transaction_id: {"$last":"$id"},
             transaction_type: {"$last":"$operation"},
             outputs: {"$last":"$outputs"}
@@ -285,7 +285,9 @@ function getMetadata(transactions_collection, asset_id = 0, transaction_ids = []
         if (transaction_ids.length > 0){
             query_array.splice(1, 0,  {$match: { id: { $in: transaction_ids } }});
         }else if (search_public_keys.length > 0){
-            query_array.splice(2, 0,  {$match: { outputs: {$elemMatch : {public_keys : { $in: search_public_keys }}}}});
+            // We also get the create transactions
+            query_array.splice(0, 1);
+            query_array.splice(1, 0,  {$match: { outputs: {$elemMatch : {public_keys : { $in: search_public_keys }}}}});
         }
 
         query_array.push(
