@@ -8,6 +8,42 @@ import Base58 from 'base-58'
 import ed2curve from 'ed2curve'
 import CryptoJS from 'crypto-js'
 
+
+/**
+ * 
+ * @param {*} req 
+ * @param {*} res 
+ */
+export function search(req, res) {
+    var mongodb_url= req.body["mongodb_url"]
+    var search_text= req.body["search_text"]
+    var public_keys = req.body["public_key"] ? [req.body["public_key"]] : []
+
+    const client = new MongoClient(mongodb_url);
+    
+    client.connect(function(err) {
+
+        if (err) return res.status(400).json({ error: err});
+
+        const db = client.db("bigchain");
+        const metadata_collection = db.collection("metadata");
+
+        var query = searchMetadata(metadata_collection, search_text, public_keys);
+
+        query.toArray(function(err, docs) {
+            if (err){ 
+                console.log(err)
+                return res.status(400).json({ error: err});
+            }
+
+            //console.log("search results for "+search_text+":")
+            //console.log(docs)
+
+            return res.status(200).json({results: docs});
+        });
+    });
+}
+
 /**
  * Only returns the metadata of the latest books to be added
  * @param {*} req 
@@ -169,9 +205,6 @@ export function getPublicKeyDocuments(req, res){
         if (err) return res.status(400).json({ error: err});
 
         const db = client.db("bigchain");
-        
-        //const assets_collection = db.collection("assets");
-        //var query = getAssets(assets_collection, [public_key]);
 
         const transactions_collection = db.collection("transactions");
         var query = getMetadata(transactions_collection, 0, [], [public_key]);    
@@ -181,11 +214,12 @@ export function getPublicKeyDocuments(req, res){
                 console.log(err)
                 return res.status(400).json({ error: err});
             }
-            console.log(docs)
+
+            //console.log(docs)
+
             return res.status(200).json({results: docs});
         });
     });
-
 }
 
 /**
@@ -239,7 +273,7 @@ function decryptDocument(docs){
  * @param {boolean} latest Retrieve the latest asset metadata
  * @param {int} max Retrieve certain number of metadata
  */
-function getMetadata(transactions_collection, asset_id = 0, transaction_ids = [], search_public_keys = [], latest = true, max = 10, search_text = null){
+function getMetadata(transactions_collection, asset_id = 0, transaction_ids = [], search_public_keys = []){
 
     var query_array = 
     [
@@ -300,6 +334,56 @@ function getMetadata(transactions_collection, asset_id = 0, transaction_ids = []
     }
 
     return transactions_collection.aggregate(query_array);
+}
+
+function searchMetadata(metadata_collection, search_text, search_public_keys = []){
+
+    var query_array = 
+    [
+        {$match: { $text: { $search: search_text} } },
+        {$lookup:{
+            from: 'transactions',
+            localField: 'id',
+            foreignField: 'id',
+            as: 'transactions'
+        }},
+        {$unwind: "$transactions"},
+        {$group: {
+            _id: "$transactions.asset.id",
+            metadata: {"$last":"$metadata"},
+            asset_id: {"$last":"$transactions.asset.id"},
+            transaction_id: {"$last":"$transactions.id"},
+            transaction_type: {"$last":"$transactions.operation"}
+        }},
+        {$lookup:{
+            from: 'assets',
+            localField: 'asset_id',
+            foreignField: 'id',
+            as: 'asset'
+        }},
+        {$unwind: "$asset"},
+        {$project: {
+            "id": "$transaction_id",
+            "asset_id": "$asset_id",
+            "transaction_id": "$transaction_id",
+            "transaction_type": "$transaction_type",
+            "version": "$asset.data.version",
+            "metadata": "$metadata"
+        }},
+        {$project: {
+            "_id": 0,
+            "metadata.blob": 0,
+            "metadata.properties": 0
+        }}
+    ]
+
+    if (search_public_keys.length > 0) {
+        query_array.splice(3, 0,  {$match: { 
+            "transactions.outputs": {$elemMatch : {public_keys : { $in: search_public_keys }}}
+        }});
+    }
+
+    return metadata_collection.aggregate(query_array);
 }
 
 /**
@@ -390,41 +474,6 @@ function getAdjacentReferencedByAsset(assets_collection, parents_ids, children_i
             //"version": "1.0", // ** testing
             "is_parent" : {$in: [ "$asset_id", parents_ids ]},
             "metadata": "$metadata.metadata"
-        }},
-        {$project: {
-            "_id": 0,
-            "metadata.blob": 0,
-            "metadata.properties": 0
-        }}
-    ]);
-}
-
-function getAssets(metadata_collection, public_keys){
-
-    return metadata_collection
-    .aggregate([
-        {$match: { "metadata.document_pk": { $in: public_keys } }},
-        {$lookup:{
-            localField: 'id',
-            foreignField: 'asset.id',
-            as: 'transactions'
-        }},
-        {$unwind: "$transactions"},
-        {$group: {
-            _id: "$id",
-            data: {"$last":"$data"},
-            asset_id: {"$last":"$id"},
-            transaction_id: {"$last":"$transactions.id"},
-            transaction_type: {"$last":"$transactions.operation"}
-        }},
-        {$project: {
-            "id": "$transaction_id",
-            "asset_id": "$asset_id",
-            "transaction_id": "$transaction_id",
-            "transaction_type": "$transaction_type",
-            "version": "$data.version",
-            //"version": "1.0", // ** testing
-            "metadata": "$metadata"
         }},
         {$project: {
             "_id": 0,

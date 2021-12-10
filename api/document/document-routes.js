@@ -5,6 +5,8 @@ import * as controller from './document-controller';
 // The controller task will perform the action
 router.post('/documents/latest', controller.getLatest);
 
+router.post('/documents/search', controller.search);
+
 router.post('/documents', controller.getDocument);
 
 router.post('/documents/adjacent', controller.getAdjacentDocuments);
