@@ -6,7 +6,7 @@ import {connectToDB} from './api/config/db';
 import {registerRoutes} from './routes.js';
 
 const app = express() // instantiate a new express app
-const port = 3000
+const port = process.env.PORT || 3000
 
 setEnvironment(app);
 //connectToDB();
@@ -30,5 +30,5 @@ app.get('/', (req, res) => {
 // package to get hot reloads for express servers
 // and can now run: nodemon dev-server/index.js to serve the web server
 app.listen(port, () => {
-  console.log(`E.g. app listening at http://localhost:${port}`)
+  console.log('App listening on port ${port}')
 })
