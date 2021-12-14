@@ -30,5 +30,5 @@ app.get('/', (req, res) => {
 // package to get hot reloads for express servers
 // and can now run: nodemon dev-server/index.js to serve the web server
 app.listen(port, () => {
-  console.log('App listening on port ${port}')
+  console.log('App listening on port '+port)
 })
