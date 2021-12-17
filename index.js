@@ -2,7 +2,6 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import {setEnvironment} from './api/config/env';
-import {connectToDB} from './api/config/db';
 import {registerRoutes} from './routes.js';
 
 const app = express() // instantiate a new express app
