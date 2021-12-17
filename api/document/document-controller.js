@@ -80,7 +80,6 @@ export function getDocument(req, res) {
     console.log("mongodb_url: "+mongodb_url)
 
     client.connect(function(err) {
-        console.log("connection err: "+err)
         if (err) return res.status(400).json({ error: err});
 
         const db = client.db("bigchain");
