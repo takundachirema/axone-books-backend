@@ -32,9 +32,6 @@ export function search(req, res) {
                 return res.status(400).json({ error: err});
             }
 
-            //console.log("search results for "+search_text+":")
-            //console.log(docs)
-
             return res.status(200).json({results: docs});
         });
     });
@@ -67,6 +64,39 @@ export function getLatest(req, res) {
 }
 
 /**
+ * Returns the metadata with properties but no blob
+ * @param {*} req 
+ * @param {*} res 
+ */
+export function getDocumentProperties(req, res) {
+    var mongodb_url= req.body["mongodb_url"]
+    var transaction_id = req.body["id"]
+
+    const client = new MongoClient(mongodb_url);
+    
+    client.connect(function(err) {
+
+        if (err) return res.status(400).json({ error: err});
+
+        const db = client.db("bigchain");
+        const transactions_collection = db.collection("transactions");
+
+        var query = getMetadata(
+            transactions_collection,
+            transaction_id,
+            [],
+            [],
+            true
+        );
+
+        query.toArray(function(err, docs) {
+            if (err) return res.status(400).json({ error: err});
+            return res.status(200).json({results: docs});
+        });
+    });
+}
+
+/**
  * This method decrypts the document using the secret key of Axone the custodian.
  * @param {*} req 
  * @param {*} res 
@@ -86,7 +116,14 @@ export function getDocument(req, res) {
         const db = client.db("bigchain");
         const transactions_collection = db.collection("transactions")
 
-        var query = getMetadata(transactions_collection, transaction_id);
+        var query = getMetadata(
+            transactions_collection, 
+            transaction_id,
+            [], 
+            [], 
+            true,
+            true
+        );
 
         query.toArray(function(err, docs) {
             if (err) return res.status(400).json({ error: err});
@@ -203,7 +240,12 @@ export function getPublicKeyDocuments(req, res){
         const db = client.db("bigchain");
 
         const transactions_collection = db.collection("transactions");
-        var query = getMetadata(transactions_collection, 0, [], [public_key]);    
+        var query = getMetadata(
+            transactions_collection, 
+            0, 
+            [], 
+            [public_key]
+        );    
 
         query.toArray(function(err, docs) {
             if (err){ 
@@ -269,7 +311,13 @@ function decryptDocument(docs){
  * @param {boolean} latest Retrieve the latest asset metadata
  * @param {int} max Retrieve certain number of metadata
  */
-function getMetadata(transactions_collection, asset_id = 0, transaction_ids = [], search_public_keys = []){
+function getMetadata(
+    transactions_collection, 
+    asset_id = 0, 
+    transaction_ids = [], 
+    search_public_keys = [], 
+    includeProperties=false,
+    includeBlob=false){
 
     var query_array = 
     [
@@ -319,15 +367,21 @@ function getMetadata(transactions_collection, asset_id = 0, transaction_ids = []
             query_array.splice(0, 1);
             query_array.splice(1, 0,  {$match: { outputs: {$elemMatch : {public_keys : { $in: search_public_keys }}}}});
         }
-
-        query_array.push(
-            {$project: {
-                "_id": 0,
-                "metadata.blob": 0,
-                "metadata.properties": 0
-            }}
-        )
     }
+
+    var project_properties = {"_id": 0}
+
+    if (!includeProperties){
+        project_properties["metadata.properties"] = 0
+    }
+    
+    if (!includeBlob){
+        project_properties["metadata.blob"] = 0
+    }
+
+    query_array.push(
+        {$project: project_properties}
+    )
 
     return transactions_collection.aggregate(query_array);
 }
