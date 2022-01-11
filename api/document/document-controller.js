@@ -71,6 +71,8 @@ export function getLatest(req, res) {
 export function getDocumentProperties(req, res) {
     var mongodb_url= req.body["mongodb_url"]
     var transaction_id = req.body["id"]
+    
+    console.log("doc props: "+mongodb_url+" "+transaction_id);
 
     const client = new MongoClient(mongodb_url);
     
