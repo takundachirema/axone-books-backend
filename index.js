@@ -2,14 +2,15 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import {setEnvironment} from './api/config/env';
-import {connectToDB} from './api/config/db';
 import {registerRoutes} from './routes.js';
 
+const cors = require('cors');
 const app = express() // instantiate a new express app
 const port = process.env.PORT || 3000
 
+app.use(cors());
+
 setEnvironment(app);
-//connectToDB();
 registerRoutes(app);
 
 app.use(bodyParser.json());

@@ -73,6 +73,8 @@ export function getLatest(req, res) {
 export function getDocumentProperties(req, res) {
     var mongodb_url= req.body["mongodb_url"]
     var transaction_id = req.body["id"]
+    
+    console.log("doc props: "+mongodb_url+" "+transaction_id);
 
     const client = new MongoClient(mongodb_url);
     
@@ -112,7 +114,6 @@ export function getDocument(req, res) {
     console.log("mongodb_url: "+mongodb_url)
 
     client.connect(function(err) {
-        console.log("connection err: "+err)
         if (err) return res.status(400).json({ error: err});
 
         const db = client.db("bigchain");
@@ -277,12 +278,12 @@ function decryptDocument(docs){
     var secret_b58 = data.axone_secret;
     var nonce_b58 = data.axone_nonce;
 
-    //console.log("se: "+secret_b58+" no: "+nonce_b58)
+    console.log("se: "+secret_b58+" no: "+nonce_b58)
     // convert secret and nonce to uint8 arrays
     var secret_uint8arr = Base58.decode(secret_b58)
     var nonce_uint8arr = Base58.decode(nonce_b58)
 
-    //console.log("pv: "+process.env.PRIVATE_KEY+" pb: "+data.document_pk)
+    console.log("pv: "+process.env.PRIVATE_KEY+" pb: "+data.document_pk)
     // get axone secret key corresponding to public key on client side
     // get document public key for the private key used to encrypt
     var private_key_b58 = process.env.PRIVATE_KEY;
