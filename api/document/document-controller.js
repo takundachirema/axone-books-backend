@@ -47,6 +47,8 @@ export function getLatest(req, res) {
 
     const client = new MongoClient(mongodb_url);
     
+    print("in get latest ***")
+    
     client.connect(function(err) {
 
         if (err) return res.status(400).json({ error: err});
