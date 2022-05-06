@@ -300,11 +300,16 @@ function decryptDocument(docs){
     // now decrypt the secret to its uint8 array
     var d_secret_uint8arr = nacl.box.open(secret_uint8arr, nonce_uint8arr, cv_public_key_uint8, cv_private_key_uint8)
 
-    // now get the b58 representation of the secret
-    var d_secret_b58 = Base58.encode(d_secret_uint8arr)
-    
-    // now decrypt the document blob
-    var d_document = CryptoJS.AES.decrypt(data.blob, d_secret_b58).toString(CryptoJS.enc.Utf8);
+    try {
+        // now get the b58 representation of the secret
+        var d_secret_b58 = Base58.encode(d_secret_uint8arr)
+        
+        // now decrypt the document blob
+        var d_document = CryptoJS.AES.decrypt(data.blob, d_secret_b58).toString(CryptoJS.enc.Utf8);
+    }
+    catch(e) {
+        var d_document = "";
+    }
 
     return {document: d_document, pages: pages};
 }
