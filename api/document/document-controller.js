@@ -56,7 +56,15 @@ export function getLatest(req, res) {
         const db = client.db("bigchain");
         const transactions_collection = db.collection("transactions");
 
-        var query = getMetadata(transactions_collection);
+        var query = getMetadata(
+            transactions_collection,
+            0,
+            [],
+            [],
+            false,
+            false,
+            true
+        );  
 
         query.toArray(function(err, docs) {
             if (err) return res.status(400).json({ error: err});
@@ -325,8 +333,9 @@ function getMetadata(
     transaction_ids = [], 
     search_public_keys = [], 
     includeProperties=false,
-    includeBlob=false){
-
+    includeBlob=false,
+    firstChapters=false) { 
+    
     var query_array = 
     [
         {$match: { operation: { $ne: "CREATE" }  }},
@@ -361,29 +370,34 @@ function getMetadata(
         }}
     ];
 
+
     // If asset_id is not null get only that.
     // Otherwise get other assets and remove excess data.
     if (asset_id !== 0) {
         query_array.splice(1, 0,  {$match: { id: { $eq: asset_id }  }});
     }
     else {
-
         if (transaction_ids.length > 0){
             query_array.splice(1, 0,  {$match: { id: { $in: transaction_ids } }});
-        }else if (search_public_keys.length > 0){
+        }
+        else if (search_public_keys.length > 0){
             // We also get the create transactions
             query_array.splice(0, 1);
             query_array.splice(1, 0,  {$match: { outputs: {$elemMatch : {public_keys : { $in: search_public_keys }}}}});
         }
     }
 
+    if (firstChapters){
+        query_array.push({$match: { version: {$eq : "1.0" }}})
+    }
+
     var project_properties = {"_id": 0}
 
-    if (!includeProperties){
+    if (!includeProperties) {
         project_properties["metadata.properties"] = 0
     }
     
-    if (!includeBlob){
+    if (!includeBlob) {
         project_properties["metadata.blob"] = 0
     }
 
@@ -394,7 +408,7 @@ function getMetadata(
     return transactions_collection.aggregate(query_array);
 }
 
-function searchMetadata(metadata_collection, search_text, search_public_keys = []){
+function searchMetadata(metadata_collection, search_text, search_public_keys = []) {
 
     var query_array = 
     [
