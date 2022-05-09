@@ -500,6 +500,8 @@ function getAdjacentReferencingAsset(assets_collection, asset_id){
             //"version": "3.0", // ** testing
             // If asset_id is a child, then THIS asset is a parent.
             "is_parent" : {$in: [ asset_id, "$data.children" ]},
+            "parents": "$data.parents",
+            "children": "$data.children",
             "metadata": "$metadata.metadata"
         }},
         {$project: {
@@ -545,6 +547,8 @@ function getAdjacentReferencedByAsset(assets_collection, parents_ids, children_i
             "version": "$data.version",
             //"version": "1.0", // ** testing
             "is_parent" : {$in: [ "$asset_id", parents_ids ]},
+            "parents": "$data.parents",
+            "children": "$data.children",
             "metadata": "$metadata.metadata"
         }},
         {$project: {
