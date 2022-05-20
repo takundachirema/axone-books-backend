@@ -316,6 +316,7 @@ function decryptDocument(docs){
         var d_document = CryptoJS.AES.decrypt(data.blob, d_secret_b58).toString(CryptoJS.enc.Utf8);
     }
     catch(e) {
+        console.log("*** error getting docs ***")
         var d_document = "";
     }
 
@@ -366,6 +367,8 @@ function getMetadata(
             "version": "$asset.data.version",
             "transaction_id": "$transaction_id",
             "transaction_type": "$transaction_type",
+            "parents": "$asset.data.parents",
+            "children": "$asset.data.children",
             "metadata": "$metadata.metadata"
         }}
     ];
@@ -440,6 +443,8 @@ function searchMetadata(metadata_collection, search_text, search_public_keys = [
             "transaction_id": "$transaction_id",
             "transaction_type": "$transaction_type",
             "version": "$asset.data.version",
+            "parents": "$asset.data.parents",
+            "children": "$asset.data.children",
             "metadata": "$metadata"
         }},
         {$project: {
