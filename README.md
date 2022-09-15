@@ -18,35 +18,31 @@
 *** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
 *** https://www.markdownguide.org/basic-syntax/#reference-style-links
 -->
+<!--
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
 [![LinkedIn][linkedin-shield]][linkedin-url]
-
-
+-->
 
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
   <a href="https://github.com/othneildrew/Best-README-Template">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
+    <img src="images/logo_orange_circle.png" alt="Logo" width="80" height="80">
   </a>
 
-  <h3 align="center">Best-README-Template</h3>
+  <h3 align="center">Axone Books</h3>
 
   <p align="center">
-    An awesome README template to jumpstart your projects!
     <br />
-    <a href="https://github.com/othneildrew/Best-README-Template"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    <a href="https://github.com/othneildrew/Best-README-Template">View Demo</a>
+    <a href="http://www.axone.network/">View Demo</a>
     ·
-    <a href="https://github.com/othneildrew/Best-README-Template/issues">Report Bug</a>
+    <a href="http://www.axone.network/">Report Bug</a>
     ·
-    <a href="https://github.com/othneildrew/Best-README-Template/issues">Request Feature</a>
+    <a href="http://www.axone.network/">Request Feature</a>
   </p>
 </div>
 
@@ -85,100 +81,408 @@
 
 [![Product Name Screen Shot][product-screenshot]](https://example.com)
 
-There are many great README templates available on GitHub; however, I didn't find one that really suited my needs so I created this enhanced one. I want to create a README template so amazing that it'll be the last one you ever need -- I think this is it.
+Axone is a platform for content creators to collaborate in a unique way. Inspired by the theory of “parallel universes”, Axone allows content to have alternative parallel paths. Through collaboration, different creators can expand a piece of content by creating an alternate version of it! Alternate versions of the alternate version can be created resulting in an alternative path of a content’s evolution! Features on Axone include Web Monetization and NFT Minting.
 
-Here's why:
-* Your time should be focused on creating something amazing. A project that solves a problem and helps others
-* You shouldn't be doing the same tasks over and over like creating a README from scratch
-* You should implement DRY principles to the rest of your life :smile:
-
-Of course, no one template will serve all projects since your needs may be different. So I'll be adding more in the near future. You may also suggest changes by forking this repo and creating a pull request or opening an issue. Thanks to all the people have contributed to expanding this template!
-
-Use the `BLANK_README.md` to get started.
+We started with books for our POC (proof of concept) which can be found [here](http://www.axone.network/). Authors can create or extend books by contributing chapters to them. An author can create a chapter with a different plot to an existing one resulting in a new trajectory of the book and thus a different ending. Other cool stuff that can be done is adding background stories, explanations, illustrations, animations and voice overs. These will be implemented in preceding versions of Axone.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 ### Built With
 
 This section should list any major frameworks/libraries used to bootstrap your project. Leave any add-ons/plugins for the acknowledgements section. Here are a few examples.
 
-* [![Next][Next.js]][Next-url]
-* [![React][React.js]][React-url]
 * [![Vue][Vue.js]][Vue-url]
-* [![Angular][Angular.io]][Angular-url]
-* [![Svelte][Svelte.dev]][Svelte-url]
-* [![Laravel][Laravel.com]][Laravel-url]
 * [![Bootstrap][Bootstrap.com]][Bootstrap-url]
 * [![JQuery][JQuery.com]][JQuery-url]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
 <!-- GETTING STARTED -->
 ## Getting Started
 
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
+This repository is for the backend. The backend provides the API for the front end repository which can be found [here](https://github.com/takundachirema/axone-books-frontend).
 
 ### Prerequisites
 
 This is an example of how to list things you need to use the software and how to install them.
 * npm
   ```sh
-  npm install npm@latest -g
+  sudo npm install -g n
+  sudo n 14.18.1
   ```
 
-### Installation
+### Local Setup 
 
-_Below is an example of how you can instruct your audience on installing and setting up your app. This template doesn't rely on any external dependencies or services._
-
-1. Get a free API Key at [https://example.com](https://example.com)
-2. Clone the repo
+1. Clone the repo
    ```sh
-   git clone https://github.com/your_username_/Project-Name.git
+   git clone https://github.com/takundachirema/axone-books-backend.git
    ```
-3. Install NPM packages
+2. Install NPM packages
    ```sh
    npm install
    ```
-4. Enter your API in `config.js`
-   ```js
-   const API_KEY = 'ENTER YOUR API';
+3. Start the server
+   ```sh
+   npm run start
    ```
+4. Clone the Bigchaindb repo. Bigchaindb is a blockchain database that can be used for representing real world assets as digital assets. Ownership is   enforced through cryptographic keys and it uses Tendermint for consensus and MongoDB for storage.
+  ```sh
+  git clone https://github.com/bigchaindb/bigchaindb.git
+  cd bigchaindb
+  make run
+  ```
+5. Axone backend app will connect to the local instance of bigchaindb.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+### Production Setup 
 
+<details>
 
-<!-- USAGE EXAMPLES -->
-## Usage
+<summary>Click to see details</summary>
 
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
+### Setup SSL
 
-_For more examples, please refer to the [Documentation](https://example.com)_
+- Install nginx: 
+```
+sudo apt update
+sudo apt install nginx
+```
+- update the http and https to redirect to port 9984:
+```
+sudo nano /etc/nginx/sites-enabled/default
+```
+- Then paste this:
+```
+server {
+    ...
+    location / {
+        proxy_pass http://127.0.0.1:9984;
+    }
+    ...
+```
+- Also increase the file size max that can be sent
+```
+sudo nano /etc/nginx/nginx.conf
+```
+- Then add this into the http tag:
+```
+http {
+    ...
+    client_max_body_size 20M;
+} 
+```
+- Then reload nginx:
+```
+sudo service nginx reload
+```
+- For errors in connection logs are here:
+```
+nano /var/log/nginx/error.log
+```
+- Now install lets encrypt and we'll use it for obtaining a certificate for https connection to the node
+```
+sudo apt update && sudo apt install certbot python3-certbot-nginx
+```
+- Get SSL certificate
+```
+sudo certbot --nginx
+```
+- When asked about your domain names put like this:
+```
+nececity.net www.nececity.net
+```
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+### Install MongoDB:
+```
+sudo apt-get update
+sudo apt install mongodb
+```
+- For remote access change; bind_ip from 127.0.0.1 to 0.0.0.0:
+```
+sudo nano /etc/mongodb.conf
+```
+- The restart the service. Its mongodb on ubuntu 20.04 and mongod on others:
+```
+sudo service mongodb restart
+```
 
+### Install Bigchaindb and Tendermint
+- http://docs.bigchaindb.com/projects/server/en/latest/simple-deployment-template/set-up-node-software.html OR:
+```
+sudo apt install -y python3-pip libssl-dev
+sudo pip3 install -U pip
+sudo pip3 install bigchaindb==2.2.2
+```
+- Install tendermint
+```
+sudo apt install -y unzip
+wget https://github.com/tendermint/tendermint/releases/download/v0.31.5/tendermint_v0.31.5_linux_amd64.zip
+unzip tendermint_v0.31.5_linux_amd64.zip
+rm tendermint_v0.31.5_linux_amd64.zip
+sudo mv tendermint /usr/local/bin
+```
+- Initialize tendermint
+```
+sudo tendermint init
+```
+- If you see port already in use after starting mongodb run this:
+```
+sudo lsof -iTCP -sTCP:LISTEN -n -P
+```
+- Then kill the mongodb process:
+```
+sudo kill <process_id>
+```
 
+### Start Bigchaindb Using Monit - Recommended
+- Monit can be used to make sure that both the bigchaindb process is started and that tendermint are running
+```
+sudo apt-get update
+sudo apt install monit 
+bigchaindb-monit-config 
+```
+- These create the .bigchaindb-monit folder
+- The script that is run is called .bigchaindb-monit/monit_script
+- put this in that script:
+```
+#!/bin/bash
+case $1 in
 
-<!-- ROADMAP -->
-## Roadmap
+  start_bigchaindb)
 
-- [x] Add Changelog
-- [x] Add back to top links
-- [ ] Add Additional Templates w/ Examples
-- [ ] Add "components" document to easily copy & paste sections of the readme
-- [ ] Multi-language Support
-    - [ ] Chinese
-    - [ ] Spanish
+    pushd $4
 
-See the [open issues](https://github.com/othneildrew/Best-README-Template/issues) for a full list of proposed features (and known issues).
+      nohup bigchaindb start > $3/bigchaindb.out.log 2>&1 &
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+      echo $! > $2
+    popd
 
+    ;;
+
+  stop_bigchaindb)
+
+    kill -2 `cat $2`
+    rm -f $2
+
+    ;;
+
+  start_tendermint)
+
+    pushd $4
+      sudo nohup tendermint node >> $3/tendermint.out.log 2>> $3/tendermint.err.log &
+      
+      sudo bigchaindb init
+      
+      echo $! > $2
+    popd
+
+    ;;
+
+  stop_tendermint)
+
+    kill -2 `cat $2`
+    rm -f $2
+
+    ;;
+
+esac
+exit 0
+```
+- The script that takes care of logs is called: .bigchaindb-monit/monit_script_logrotate
+```
+#!/bin/bash
+case $1 in
+  rotate_tendermint_logs)
+    /bin/rm $2.tar.gz
+    /bin/tar -cvf $2.tar.gz $2    
+    /bin/cp /dev/null $2
+    ;;
+esac
+exit 0
+```
+- Now to start the monit service we need to show it what processes to start:
+```
+sudo nano /etc/monit/monitrc
+```
+- First make the monit be 5 seconds: set daemon 5
+- Make log files go to: set log /var/log/monit.log
+- If you have to remove the monitrc file run this command:
+```
+sudo chmod 600 /etc/monit/monitrc
+```
+- Then fill that file with the below in the SERVICES section:
+```
+check process bigchaindb_process
+    with pidfile /home/takundachirema/.bigchaindb-monit/monit_processes/bigchaindb.pid
+    start program "/home/takundachirema/.bigchaindb-monit/monit_script start_bigchaindb /home/takundachirema/.bigchaindb-monit/monit_processes/bigchaindb.pid /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit/logs"
+    restart program "/home/takundachirema/.bigchaindb-monit/monit_script start_bigchaindb /home/takundachirema/.bigchaindb-monit/monit_processes/bigchaindb.pid /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit/logs"
+    stop program "/home/takundachirema/.bigchaindb-monit/monit_script stop_bigchaindb /home/takundachirema/.bigchaindb-monit/monit_processes/bigchaindb.pid /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit/logs"
+
+check process tendermint
+    with pidfile /home/takundachirema/.bigchaindb-monit/monit_processes/tendermint.pid
+    start program "/home/takundachirema/.bigchaindb-monit/monit_script start_tendermint /home/takundachirema/.bigchaindb-monit/monit_processes/tendermint.pid /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit/monit_processes/bigchaindb.pid"
+    restart program "/home/takundachirema/.bigchaindb-monit/monit_script start_tendermint /home/takundachirema/.bigchaindb-monit/monit_processes/tendermint.pid /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit/monit_processes/bigchaindb.pid"
+    stop program "/home/takundachirema/.bigchaindb-monit/monit_script stop_tendermint /home/takundachirema/.bigchaindb-monit/monit_processes/tendermint.pid /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit/logs"
+
+check file bigchaindb.out.log with path /home/takundachirema/.bigchaindb-monit/logs/bigchaindb.out.log
+    if size > 20 MB then
+        exec "/home/takundachirema/.bigchaindb-monit/monit_script_logrotate rotate_tendermint_logs /home/takundachirema/.bigchaindb-monit/logs/bigchaindb.out.log /home/takundachirema/.bigchaindb-monit/monit_processes/bigchaindb.pid"
+
+check file tendermint.out.log with path /home/takundachirema/.bigchaindb-monit/logs/tendermint.out.log
+    if size > 20 MB then
+        exec "/home/takundachirema/.bigchaindb-monit/monit_script_logrotate rotate_tendermint_logs /home/takundachirema/.bigchaindb-monit/logs/tendermint.out.log /home/takundachirema/.bigchaindb-monit/monit_processes/tendermint.pid"
+
+check file tendermint.err.log with path /home/takundachirema/.bigchaindb-monit/logs/tendermint.err.log
+    if size > 20 MB then
+        exec "/home/takundachirema/.bigchaindb-monit/monit_script_logrotate rotate_tendermint_logs /home/takundachirema/.bigchaindb-monit/logs/tendermint.err.log /home/takundachirema/.bigchaindb-monit/monit_processes/tendermint.pid"
+
+```
+- ** NB - Run the commands in the Errors for both Monit and Manual section
+- Then start the monit service:
+```
+sudo /etc/init.d/monit restart
+```
+- Then check that all processes are running
+```
+sudo lsof -iTCP -sTCP:LISTEN -n -P
+```
+- To check a specific process run:
+```
+ps aux | grep -i tendermint
+```
+- If not, check the logs from the monit process
+```
+sudo nano /var/log/monit.log
+```
+
+### Start Bigchaindb Manual
+- ** NB - Run the commands in the Errors for both Monit and Manual section
+- Then start the bigchaindb:
+```
+nohup bigchaindb start > bigchaindb.out.log 2>&1 &
+```
+- Then start the tendermint node:
+```
+tendermint node &> tendermint.out &
+```
+- To stop it first check process id and then kill it as below. Don't forget the -2 parameter.
+```
+ps -ef | grep bigchaindb
+sudo kill -2 <process_id>
+```
+
+### Bigchaindb backups
+- You must set backups because tendermint is not reliable
+- Run this command to create the backups directories:
+```
+sudo mkdir /var/backups/mongo/
+sudo mkdir /var/backups/tendermint/
+```
+- Create a script called check_collections.js in .bigchaindb-monit folder:
+```
+use bigchain
+db.transactions.find().count()
+```
+- Create a script named backup_script in .bigchaindb-monit folder:
+```
+#!/bin/bash
+
+RESULT=$(mongo < /home/takundachirema/.bigchaindb-monit/check_collections.js | tail -2 | head -n 1)
+
+if [ $RESULT == "0" ]; then
+    echo "No Transactions Collection Found!"
+else
+    sudo mongodump --db bigchain --out /var/backups/mongo/`date +"%m-%d-%y_%H:%M"`
+    sudo cp -r /root/.tendermint/. /var/backups/tendermint/`date +"%m-%d-%y_%H:%M"`
+
+    sudo find /var/backups/mongo/ -mindepth 1 -mmin +$((60*24*3)) -type d -exec rm -r {} ';'
+    sudo find /var/backups/tendermint/ -mindepth 1 -mmin +$((60*24*3)) -type d -exec rm -r {} ';'
+fi
+```
+- Make it executable by running:
+```
+sudo chmod u+x /home/takundachirema/.bigchaindb-monit/backup_script
+```
+- Then setup a cron job for this to run every hour by first running:
+```
+sudo crontab -e
+```
+- The put the below into that file:
+```
+0 */12 * * * /home/takundachirema/.bigchaindb-monit/backup_script >> /home/takundachirema/.bigchaindb-monit/logs/backup.out.log 2>&1
+```
+- Whenever the tendermint process restarts it will backup the current bigchaindb in that folder.
+- It is also necessary to backup the tendermint data which is also done by those scripts.
+- To restore a db run the below. Replace the times with the backup one:
+```
+sudo mongorestore --db bigchain --drop /var/backups/mongo/04-28-22_15\:30/bigchain/
+```
+- Also copy the same time backup of the tendermint into it's directory:
+```
+sudo cp -a /var/backups/tendermint/04-28-22_15\:30/. /root/.tendermint/
+```
+
+### Errors for both Monit and Manual
+
+- If you get an error about itdangerous in the bigchaindb.out.log run this:
+- Do for both sudo and non-sudo because of python environments:
+```
+pip3 install itsdangerous==2.0.1
+sudo pip3 install itsdangerous==2.0.1
+```
+- If you get an error; cannot import name 'BaseResponse' from 'werkzeug.wrappers', run this:
+```
+sudo pip3 install werkzeug==2.0.3
+```
+- If you get a warning; RuntimeWarning: greenlet.greenlet size changed:
+```
+sudo pip install --upgrade gevent
+```
+
+## Reset BigchainDB
+
+- Run these commands:
+```
+sudo tendermint unsafe_reset_all
+```
+- delete the directory:
+```
+sudo rm -R /root/.tendermint
+```
+- Then stop the tendermint process
+```
+ps aux | grep -i tendermint
+```
+- Then reset the bigchaindb
+```
+sudo bigchaindb drop
+```
+- Then stop bigchaindb process
+```
+ps aux | grep -i bigchaindb
+```
+- then re-initialize it
+```
+sudo tendermint init
+```
+
+### Useful queries
+
+- Check last row in collection:
+```
+db.blocks.find().limit(1).sort({$natural:-1})
+```
+- Remove all blocks height greater than:
+```
+db.products.remove( { qty: { $gt: 20 } } )
+```
+- Drop all collections:
+```
+db.getCollectionNames().forEach(function(x) {db[x].drop()});
+```
+
+</details>
 
 
 <!-- CONTRIBUTING -->
@@ -211,30 +515,9 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Your Name - [@your_twitter](https://twitter.com/your_username) - email@example.com
-
-Project Link: [https://github.com/your_username/repo_name](https://github.com/your_username/repo_name)
+Takunda Chirema - takunda.chirema@alumni.uct.ac.za
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-<!-- ACKNOWLEDGMENTS -->
-## Acknowledgments
-
-Use this space to list resources you find helpful and would like to give credit to. I've included a few of my favorites to kick things off!
-
-* [Choose an Open Source License](https://choosealicense.com)
-* [GitHub Emoji Cheat Sheet](https://www.webpagefx.com/tools/emoji-cheat-sheet)
-* [Malven's Flexbox Cheatsheet](https://flexbox.malven.co/)
-* [Malven's Grid Cheatsheet](https://grid.malven.co/)
-* [Img Shields](https://shields.io)
-* [GitHub Pages](https://pages.github.com)
-* [Font Awesome](https://fontawesome.com)
-* [React Icons](https://react-icons.github.io/react-icons/search)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
