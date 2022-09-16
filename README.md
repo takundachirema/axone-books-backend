@@ -110,6 +110,7 @@ This is an example of how to list things you need to use the software and how to
   sudo npm install -g n
   sudo n 14.18.1
   ```
+* docker
 
 ### Local Setup 
 
@@ -129,9 +130,9 @@ This is an example of how to list things you need to use the software and how to
   ```sh
   git clone https://github.com/bigchaindb/bigchaindb.git
   cd bigchaindb
-  make run
+  make run &> log.out &
   ```
-5. Axone backend app will connect to the local instance of bigchaindb.
+5. Axone backend app will connect to the local instance of bigchaindb at http://localhost:9984/api/v1/
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -372,56 +373,20 @@ ps -ef | grep bigchaindb
 sudo kill -2 <process_id>
 ```
 
-### Bigchaindb backups
-- You must set backups because tendermint is not reliable
-- Run this command to create the backups directories:
-```
-sudo mkdir /var/backups/mongo/
-sudo mkdir /var/backups/tendermint/
-```
-- Create a script called check_collections.js in .bigchaindb-monit folder:
-```
-use bigchain
-db.transactions.find().count()
-```
-- Create a script named backup_script in .bigchaindb-monit folder:
-```
-#!/bin/bash
+### backups
 
-RESULT=$(mongo < /home/takundachirema/.bigchaindb-monit/check_collections.js | tail -2 | head -n 1)
+- Its important to take some frequent snapshots of the VM in case tendermint crashes and has to rebuild the DB by committing the transactions. This takes hours if the transactions are a few hundred thousand which can be reached easily.
 
-if [ $RESULT == "0" ]; then
-    echo "No Transactions Collection Found!"
-else
-    sudo mongodump --db bigchain --out /var/backups/mongo/`date +"%m-%d-%y_%H:%M"`
-    sudo cp -r /root/.tendermint/. /var/backups/tendermint/`date +"%m-%d-%y_%H:%M"`
+### Understanding Tendermint and BigchainDB
 
-    sudo find /var/backups/mongo/ -mindepth 1 -mmin +$((60*24*3)) -type d -exec rm -r {} ';'
-    sudo find /var/backups/tendermint/ -mindepth 1 -mmin +$((60*24*3)) -type d -exec rm -r {} ';'
-fi
-```
-- Make it executable by running:
-```
-sudo chmod u+x /home/takundachirema/.bigchaindb-monit/backup_script
-```
-- Then setup a cron job for this to run every hour by first running:
-```
-sudo crontab -e
-```
-- The put the below into that file:
-```
-0 */12 * * * /home/takundachirema/.bigchaindb-monit/backup_script >> /home/takundachirema/.bigchaindb-monit/logs/backup.out.log 2>&1
-```
-- Whenever the tendermint process restarts it will backup the current bigchaindb in that folder.
-- It is also necessary to backup the tendermint data which is also done by those scripts.
-- To restore a db run the below. Replace the times with the backup one:
-```
-sudo mongorestore --db bigchain --drop /var/backups/mongo/04-28-22_15\:30/bigchain/
-```
-- Also copy the same time backup of the tendermint into it's directory:
-```
-sudo cp -a /var/backups/tendermint/04-28-22_15\:30/. /root/.tendermint/
-```
+- Tendermint seeks to abstract the BFT (Bazantyne Fault Tolerance) such that it is not a monolithic structure.
+- For decentralized BFT we need the brain (logic), the storage (state) and the 2 need to communicate.
+- With blockchains such as Ethereum the brain and storage are all one structure with the communication hidden inside it.
+- Tendermint wants to abstract that such that the brain i.e. Tendermint Node (TN) just has to get data from the storage without knowing the storage implementation.
+- To do that the TN needs to have an API structure which is called the ABCI (application blockchain interface).
+- So the TN is the consensus engine, which also includes the peer to peer layers (since the TN nodes need communication for BFT).
+- The TN is decoupled from the storage using the ABCI. So TN is on one end and the application is on the other end of the ABCI.
+- The application is responsible for giving the TN whatever it needs, e.g. the UTXO's etc. so that the TN can make decisions.sh
 
 ### Errors for both Monit and Manual
 
