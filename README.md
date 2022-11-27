@@ -198,9 +198,11 @@ sudo apt-get update
 sudo apt install mongodb
 ```
 - For remote access change; bind_ip from 127.0.0.1 to 0.0.0.0:
+- Also change the port as a measure to stop attacks but you can do more for access restrictions
 ```
 sudo nano /etc/mongodb.conf
 ```
+
 - The restart the service. Its mongodb on ubuntu 20.04 and mongod on others:
 ```
 sudo service mongodb restart
