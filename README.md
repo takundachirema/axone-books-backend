@@ -245,6 +245,12 @@ bigchaindb-monit-config
 ```
 - These create the .bigchaindb-monit folder
 - The script that is run is called .bigchaindb-monit/monit_script
+- Create the config file needed for bigchaindb and put it in .bigchaindb-monit folder
+```
+bigchaindb -y configure localmongodb
+cp .bigchaindb .bigchaindb-monit/bigchaindb_config.json
+```
+- Then change the port of mongodb in the bigchaindb_config.json to be 52527
 - put this in that script:
 ```
 #!/bin/bash
@@ -252,9 +258,9 @@ case $1 in
 
   start_bigchaindb)
 
-    pushd $4
+    pushd $3
 
-      nohup bigchaindb start > $3/bigchaindb.out.log 2>&1 &
+      nohup bigchaindb -c $4/bigchaindb_config.json start > $3/bigchaindb.out.log 2>&1 &
 
       echo $! > $2
     popd
@@ -270,7 +276,7 @@ case $1 in
 
   start_tendermint)
 
-    pushd $4
+    pushd $3
       sudo nohup tendermint node >> $3/tendermint.out.log 2>> $3/tendermint.err.log &
       
       sudo bigchaindb init
@@ -316,15 +322,15 @@ sudo chmod 600 /etc/monit/monitrc
 ```
 check process bigchaindb_process
     with pidfile /home/takundachirema/.bigchaindb-monit/monit_processes/bigchaindb.pid
-    start program "/home/takundachirema/.bigchaindb-monit/monit_script start_bigchaindb /home/takundachirema/.bigchaindb-monit/monit_processes/bigchaindb.pid /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit/logs"
-    restart program "/home/takundachirema/.bigchaindb-monit/monit_script start_bigchaindb /home/takundachirema/.bigchaindb-monit/monit_processes/bigchaindb.pid /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit/logs"
-    stop program "/home/takundachirema/.bigchaindb-monit/monit_script stop_bigchaindb /home/takundachirema/.bigchaindb-monit/monit_processes/bigchaindb.pid /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit/logs"
+    start program "/home/takundachirema/.bigchaindb-monit/monit_script start_bigchaindb /home/takundachirema/.bigchaindb-monit/monit_processes/bigchaindb.pid /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit"
+    restart program "/home/takundachirema/.bigchaindb-monit/monit_script start_bigchaindb /home/takundachirema/.bigchaindb-monit/monit_processes/bigchaindb.pid /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit"
+    stop program "/home/takundachirema/.bigchaindb-monit/monit_script stop_bigchaindb /home/takundachirema/.bigchaindb-monit/monit_processes/bigchaindb.pid /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit"
 
 check process tendermint
     with pidfile /home/takundachirema/.bigchaindb-monit/monit_processes/tendermint.pid
-    start program "/home/takundachirema/.bigchaindb-monit/monit_script start_tendermint /home/takundachirema/.bigchaindb-monit/monit_processes/tendermint.pid /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit/monit_processes/bigchaindb.pid"
-    restart program "/home/takundachirema/.bigchaindb-monit/monit_script start_tendermint /home/takundachirema/.bigchaindb-monit/monit_processes/tendermint.pid /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit/monit_processes/bigchaindb.pid"
-    stop program "/home/takundachirema/.bigchaindb-monit/monit_script stop_tendermint /home/takundachirema/.bigchaindb-monit/monit_processes/tendermint.pid /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit/logs"
+    start program "/home/takundachirema/.bigchaindb-monit/monit_script start_tendermint /home/takundachirema/.bigchaindb-monit/monit_processes/tendermint.pid /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit /home/takundachirema/.bigchaindb-monit/monit_processes/bigchaindb.pid"
+    restart program "/home/takundachirema/.bigchaindb-monit/monit_script start_tendermint /home/takundachirema/.bigchaindb-monit/monit_processes/tendermint.pid /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit /home/takundachirema/.bigchaindb-monit/monit_processes/bigchaindb.pid"
+    stop program "/home/takundachirema/.bigchaindb-monit/monit_script stop_tendermint /home/takundachirema/.bigchaindb-monit/monit_processes/tendermint.pid /home/takundachirema/.bigchaindb-monit/logs /home/takundachirema/.bigchaindb-monit"
 
 check file bigchaindb.out.log with path /home/takundachirema/.bigchaindb-monit/logs/bigchaindb.out.log
     if size > 20 MB then
